@@ -1,0 +1,16 @@
+[DEFAULT]
+# Время бана (10 минут для теста, потом поставьте 3600 - 1 час)
+bantime  = 600
+# Время анализа (за последние 10 минут)
+findtime = 600
+# Количество ошибок до бана
+maxretry = 5
+# Действие: бан через iptables (работает т.к. network_mode: host)
+banaction = iptables-multiport
+
+[nginx-404]
+enabled  = true
+port     = http,https
+filter   = nginx-404
+logpath  = /var/log/nginx/access.log
+maxretry = 10

@@ -1,0 +1,30 @@
+# Laravel (не сохраняем сторонние библиотеки и пароли)
+src/app/vendor/
+src/app/node_modules/
+src/app/.env
+
+# Логи и кэш Laravel
+src/app/storage/logs/*
+src/app/storage/framework/cache/*
+src/app/storage/framework/sessions/*
+src/app/storage/framework/views/*
+src/app/bootstrap/cache/*
+
+# Оставляем пустые папки (Git не видит пустые папки, поэтому нужны заглушки)
+!src/app/storage/logs/.gitkeep
+!src/app/storage/framework/cache/.gitkeep
+!src/app/storage/framework/sessions/.gitkeep
+!src/app/storage/framework/views/.gitkeep
+
+# Логи Docker-контейнеров
+logs/nginx/*
+!logs/nginx/.gitkeep
+
+# База данных Fail2ban
+fail2ban/data/db/*
+!fail2ban/data/db/.gitkeep
+
+# Системные файлы
+.DS_Store
+.idea/
+nginx/ssl/

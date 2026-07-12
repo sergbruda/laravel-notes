@@ -1,0 +1,8 @@
+[nginx-bots]
+enabled = true
+filter = nginx-bots
+action = iptables-multiport[name=nginx, port="http,https", protocol=tcp]
+logpath = /var/log/nginx/access.log
+bantime = 3600
+findtime = 120
+maxretry = 10
