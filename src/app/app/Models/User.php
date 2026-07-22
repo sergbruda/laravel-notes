@@ -44,4 +44,15 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->hasMany(Note::class);
     }
+
+    public function level() {
+        return floor(sqrt($this->xp / 50)) + 1;
+    }
+
+    public function xpPercent() {
+        $lvl = $this->level();
+        $currXp = ($lvl - 1) * ($lvl - 1) * 50;
+        $nextXp = $lvl * $lvl * 50;
+        return round((($this->xp - $currXp) / ($nextXp - $currXp)) * 100);
+    }
 }

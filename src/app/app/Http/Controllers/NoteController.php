@@ -12,7 +12,21 @@ class NoteController extends Controller
 {
     public function index()
     {
-        $notes = Note::where("user_id", Auth::id())->latest()->get();
+        $notes = Note::where("user_id", Auth::id())
+            ->when(request("search"), function($query, $search) {
+                $query->where("title", "like", "%{$search}%")
+                      ->orWhere("content", "like", "%{$search}%");
+            })
+            ->latest()
+            ->get()
+            ->map(function($note) {
+                $s = request("search");
+                if ($s) {
+                    $note->title = str_ireplace($s, "<mark>".$s."</mark>", $note->title);
+                    $note->content = preg_replace("/(<[^>]+>)|(".preg_quote($s, "/").")/iu", "$1<mark>$2</mark>", $note->content);
+                }
+                return $note;
+            });
         $categories = \App\Models\Category::all();
         $count = $notes->count();
 
@@ -98,8 +112,9 @@ class NoteController extends Controller
     public function store(Request $request)
     {
         $request->validate(["title" => "required|max:255"]);
-        $note = Note::create(array_merge($request->only("title", "content", "category_id"), ["user_id" => Auth::id()]));
-        event(new \App\Events\NoteCreated($note));
+        $content = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $request->input("content", ""));
+        $note = Note::create(array_merge($request->only("title", "category_id"), ["content" => $content, "user_id" => Auth::id()]));
+        event(new \App\Events\NoteCreated($note)); $request->user()->increment("xp", 10);
         return redirect()->back()->with("success", "Заметка добавлена!");
     }
 
@@ -114,7 +129,8 @@ class NoteController extends Controller
     {
         $note = Note::where("id", $id)->where("user_id", Auth::id())->firstOrFail();
         $request->validate(["title" => "required|max:255"]);
-        $note->update($request->only("title", "content", "category_id"));
+        $content = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $request->input("content", ""));
+        $note->update($request->only("title", "category_id") + ["content" => $content]);
         return redirect()->back()->with("success", "Заметка обновлена!");
     }
 
