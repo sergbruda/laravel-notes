@@ -15,6 +15,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [NoteController::class, 'index']);
     Route::post('/notes', [NoteController::class, 'store'])->name('notes.store');
     Route::put('/notes/{id}', [NoteController::class, 'update'])->name('notes.update');
+    Route::get('/kanban', [NoteController::class, 'kanban'])->name('notes.kanban');
+    Route::post('/notes/reorder', [NoteController::class, 'updateOrder'])->name('notes.reorder');
     Route::delete('/notes/{id}', [NoteController::class, 'destroy'])->name('notes.destroy');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

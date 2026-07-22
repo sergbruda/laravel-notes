@@ -2,24 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Mews\Purifier\Facades\Purifier;
 
 class Note extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'title', 'content', 'user_id', 'category_id'
+        'title',
+        'content',
+        'category_id',
+        'user_id',
+        'status',
+        'order'
     ];
 
-    public function user()
+    // Автоматическая очистка HTML перед сохранением в БД (Защита от XSS)
+    public function setContentAttribute($value)
     {
-        return $this->belongsTo(User::class);
+        $this->attributes['content'] = Purifier::clean($value);
     }
 
-    public function category()
+    // Сортировка по умолчанию для Канбан-доски
+    protected static function booted()
     {
-        return $this->belongsTo(Category::class);
+        static::addGlobalScope('order', function (\Illuminate\Database\Eloquent\Builder $query) {
+            $query->orderBy('order');
+        });
     }
 }

@@ -241,73 +241,15 @@
             </div>
         @endforeach
     </div>
-    <div style="text-align: center; margin-top: 20px;"><a href="/admin" class="btn btn-info">Перейти в панель управления →</a></div>
+    <div style="text-align: center; margin-top: 20px;"><a href="/kanban" class="btn btn-info" style="margin-right: 10px;">📋 Канбан-доска</a><a href="/admin" class="btn btn-info">Перейти в панель управления →</a></div>
 </div>
 
-<script>
-    function toggleTheme() {
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        const next = isDark ? 'light' : 'dark';
-        document.body.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-        document.getElementById('theme-icon').innerText = isDark ? '☀️' : '🌙';
-    }
-    if(localStorage.getItem('theme') === 'dark') {
-        document.body.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').innerText = '🌙';
-    }
-</script>
 <style>
 .ql-toolbar.ql-snow { border-color: var(--input-border) !important; background: var(--input-bg); border-radius: 5px 5px 0 0; }
 .ql-container.ql-snow { border-color: var(--input-border) !important; border-radius: 0 0 5px 5px; font-size: 16px; }
 mark { background-color: #fff3cd; color: #333; padding: 0 2px; border-radius: 3px; }
 </style>
-<script>
-// 1. Для формы "Добавить заметку" (она всегда видна)
-let addForm = document.querySelector('form[action*="notes.store"]');
-if (addForm) {
-    let addTxt = addForm.querySelector('textarea[name="content"]');
-    addTxt.style.display = "none";
-    let addDiv = document.createElement("div");
-    addTxt.parentNode.insertBefore(addDiv, addTxt);
-    let addQ = new Quill(addDiv, { theme: "snow", placeholder: "Текст заметки...", modules: { toolbar: [["bold", "italic", "underline", "strike"], ["image"]] } });
-    addForm.addEventListener("submit", function() { addTxt.value = addDiv.querySelector(".ql-editor").innerHTML; });
-}
-
-// 2. Для кнопки "Редактировать" (создаем редактор по клику)
-document.querySelectorAll(".btn-warning").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-        // Ждем 50мс, чтобы inline-стиль 'display: flex' успел примениться после клика
-        setTimeout(function() {
-            let form = btn.closest(".note-item").querySelector(".edit-form");
-            if (!form || !form.classList.contains("active")) return;
-
-            let txt = form.querySelector("textarea[name=\"content\"]");
-            if (!txt) return;
-
-            // Если редактор еще не создан в этой форме
-            if (!form.dataset.quillInit) {
-                txt.style.display = "none";
-                let editDiv = document.createElement("div");
-                txt.parentNode.insertBefore(editDiv, txt);
-                new Quill(editDiv, { theme: "snow", placeholder: "Редактирование...", modules: { toolbar: [["bold", "italic", "underline", "strike"], ["image"]] } });
-                form.dataset.quillInit = "true";
-
-                // При сохранении формы кладем HTML обратно в скрытое поле
-                form.addEventListener("submit", function() {
-                    txt.value = editDiv.querySelector(".ql-editor").innerHTML;
-                });
-            }
-
-            // Вставляем текст заметки в визуальный редактор
-            let editorEl = form.querySelector(".ql-editor");
-            if (editorEl) {
-                editorEl.innerHTML = txt.value;
-            }
-        }, 50);
-    });
-});
-</script><div id="noteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;" onclick="if(event.target===this)this.style.display='none'">
+<div id="noteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;" onclick="if(event.target===this)this.style.display='none'">
     <div style="background:var(--card-bg); padding:30px; border-radius:15px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto; position:relative; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
         <button onclick="document.getElementById('noteModal').style.display='none'" style="position:absolute; top:15px; right:15px; background:none; border:none; font-size:2em; cursor:pointer; color:var(--text-color);">×</button>
         <h2 id="modalTitle" style="margin-top:0; color:var(--text-color);"></h2>
@@ -327,5 +269,129 @@ document.querySelectorAll('.preview-btn').forEach(function(btn){
     });
 });
 </script>
+<script>
+function compressImage(file) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > 1200) { h = h * (1200 / w); w = 1200; }
+                if (h > 1200) { w = w * (1200 / h); h = 1200; }
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.7)); // 70% качества = около 200кб
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function initQuillWithCompression(textarea) {
+    textarea.style.display = "none";
+    let div = document.createElement("div");
+    textarea.parentNode.insertBefore(div, textarea);
+    let quill = new Quill(div, { theme: "snow", placeholder: "Текст заметки...", modules: { toolbar: [["bold", "italic", "underline", "strike"], ["image"]] } });
+
+    // Сжимаем при клике на кнопку в тулбаре
+    quill.getModule('toolbar').addHandler('image', function() {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*'; input.click();
+        input.onchange = async () => {
+            const src = await compressImage(input.files[0]);
+            const range = quill.getSelection(true);
+            quill.insertEmbed(range.index, 'image', src);
+            quill.setSelection(range.index + 1);
+        };
+    });
+
+    // Сжимаем при вставке (Ctrl+V)
+    quill.root.addEventListener('paste', async (e) => {
+        if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length) {
+            e.preventDefault();
+            for (let file of e.clipboardData.files) {
+                if (file.type.match(/^image\//)) {
+                    const src = await compressImage(file);
+                    const range = quill.getSelection(true);
+                    quill.insertEmbed(range.index, 'image', src);
+                    quill.setSelection(range.index + 1);
+                }
+            }
+        }
+    });
+
+    // Сжимаем при перетаскивании (Drag & Drop)
+    quill.root.addEventListener('drop', async (e) => {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+            e.preventDefault();
+            for (let file of e.dataTransfer.files) {
+                if (file.type.match(/^image\//)) {
+                    const src = await compressImage(file);
+                    const range = quill.getSelection(true);
+                    quill.insertEmbed(range.index, 'image', src);
+                    quill.setSelection(range.index + 1);
+                }
+            }
+        }
+    });
+
+    return quill;
+}
+
+// Инициализация для формы добавления
+let addForm = document.querySelector('form[action*="notes.store"]');
+if (addForm) {
+    let addTxt = addForm.querySelector('textarea[name="content"]');
+    let addQ = initQuillWithCompression(addTxt);
+    addForm.addEventListener("submit", function() { addTxt.value = addQ.root.innerHTML; });
+}
+
+// Инициализация для модалки редактирования
+document.querySelectorAll(".preview-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+        setTimeout(function() {
+            let form = btn.closest(".note-item").querySelector(".edit-form");
+            if (!form || !form.classList.contains("active") || form.dataset.quillInit) return;
+
+            let txt = form.querySelector("textarea[name=\"content\"]");
+            if (!txt) return;
+
+            let editQ = initQuillWithCompression(txt);
+            form.dataset.quillInit = "true";
+            form.addEventListener("submit", function() { txt.value = editQ.root.innerHTML; });
+
+            let editorEl = form.querySelector(".ql-editor");
+            if (editorEl) editorEl.innerHTML = txt.value;
+        }, 50);
+    });
+});
+</script>
+<script>
+function toggleTheme() {
+    const body = document.body;
+    const icon = document.getElementById('theme-icon');
+    if (body.getAttribute('data-theme') === 'dark') {
+        body.removeAttribute('data-theme');
+        icon.textContent = '☀️';
+        localStorage.setItem('theme', 'light');
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        icon.textContent = '🌙';
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+// Восстанавливаем тему при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('theme') === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        document.getElementById('theme-icon').textContent = '🌙';
+    }
+});
+</script>
+@if($weather) <x-weather-effects :condition="$weather['desc']" /> @endif
 </body>
 </html>
