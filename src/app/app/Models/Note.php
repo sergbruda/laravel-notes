@@ -32,6 +32,17 @@ class Note extends Model
         'order'
     ];
 
+    protected $casts = [
+        'category_id' => 'integer',
+        'order' => 'integer',
+    ];
+
+    // Если выбрана "Без категории", сохраняем NULL, а не пустую строку
+    public function setCategoryIdAttribute($value)
+    {
+        $this->attributes['category_id'] = $value === '' ? null : $value;
+    }
+
     public function setContentAttribute($value)
     {
         $this->attributes['content'] = Purifier::clean($value);
@@ -47,5 +58,11 @@ class Note extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // ВОТ ЭТОТ МЕТОД БЫЛ ПОТЕРЯН!
+    public function category()
+    {
+        return $this->belongsTo(\App\Models\Category::class);
     }
 }

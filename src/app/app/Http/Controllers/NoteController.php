@@ -12,7 +12,7 @@ class NoteController extends Controller
 {
     public function index()
     {
-        $notes = Note::where("user_id", Auth::id())
+        $notes = Note::where("user_id", Auth::id())->with("category")
             ->when(request("search"), function($query, $search) {
                 $query->where("title", "like", "%{$search}%")
                       ->orWhere("content", "like", "%{$search}%");
