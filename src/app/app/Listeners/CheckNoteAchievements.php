@@ -13,6 +13,10 @@ class CheckNoteAchievements
         $user = $event->note->user;
         $note = $event->note;
         
+        if (!$user) {
+            return; // Безопасность: выходим, если пользователя нет
+        }
+        
         $user->xp += 10;
         
         $today = now()->format('Y-m-d');
@@ -62,7 +66,7 @@ class CheckNoteAchievements
         try {
             $w = Http::get("https://api.openweathermap.org/data/2.5/weather", [
                 "q" => "Ufa", 
-                "appid" => env("WEATHER_API_KEY")
+                "appid" => config("weather.api_key") // Исправлено с env на config!
             ])->json();
             
             if (isset($w['weather'][0]['main'])) {

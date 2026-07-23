@@ -1,4 +1,7 @@
 <?php
+use Spatie\Health\Http\Controllers\HealthCheckResultsController;
+Route::get('/health', HealthCheckResultsController::class);
+
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NoteController;
